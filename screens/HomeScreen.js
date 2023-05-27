@@ -1,6 +1,9 @@
 import { View, Text ,StyleSheet} from 'react-native'
 import React ,{useEffect}from 'react'
 import { useNavigation } from '@react-navigation/native';
+import Map from '../components/Map';
+
+
 const HomeScreen = () => {
 
   const Navigation = useNavigation();
@@ -12,8 +15,8 @@ const HomeScreen = () => {
   }, []);
 
   return (
-    <View style={StyleSheet.container} >
-      <Text>HomeScreen</Text>
+    <View style={styles.container} >
+      <Map  />
     </View>
   )
 }
