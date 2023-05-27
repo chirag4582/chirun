@@ -9,14 +9,14 @@ const Loader = ({navigation}) => {
     const interval = setInterval(() => {
       // setVisible((prevState) => !prevState);
       setVisible(true)
-    }, 2000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(()=>{
     setInterval(()=>{
       navigation.navigate('home')
-    },4000)
+    },10000)
   },[visible])
 
   return (

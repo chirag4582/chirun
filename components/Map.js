@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { View, StyleSheet ,Text } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-const Map = () => {
+
+
+
+
+const Map = ({ runDuration, runStarted }) => {
   const [initialRegion, setInitialRegion] = useState(null);
   const [markerPosition, setMarkerPosition] = useState(null);
   const customMapStyle = require('../assets/map.json');
+  const [coordinates, setCoordinates] = useState([]);
+  const [distance, setDistance] = useState(0);
 
+
+  useEffect(()=>{
+    if(runStarted){
+      setDistance(0)
+    }
+  },[runStarted])
 
   useEffect(() => {
-    const getLocation = async () => {
+    const startLocationUpdates = async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
@@ -18,34 +30,115 @@ const Map = () => {
           return;
         }
 
-        let location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
+        const locationOptions = {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 10,
+        };
 
-        setInitialRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-        setMarkerPosition({ latitude, longitude });
+        const locationListener = await Location.watchPositionAsync(
+          locationOptions,
+          (location) => {
+            const { latitude, longitude } = location.coords;
+            const newCoordinate = {
+              latitude,
+              longitude,
+            };
+
+            setInitialRegion({
+              latitude,
+              longitude,
+              latitudeDelta: 0.002,
+              longitudeDelta: 0.002,
+            });
+
+            setMarkerPosition(newCoordinate);
+            setCoordinates((prev) => [...prev, newCoordinate]);
+          }
+        );
+
+        return () => {
+          locationListener.remove();
+        };
       } catch (error) {
         console.log('Error getting location:', error);
       }
     };
 
-    getLocation();
-  }, [markerPosition]);
+    startLocationUpdates();
+  }, []);
 
+  useEffect(() => {
+    const calculateDistance = () => {
+      if (coordinates.length < 2) {
+        setDistance(0);
+        return;
+      }
+
+      const totalDistance = coordinates.reduce((acc, currentCoordinate, index) => {
+        if (index === 0) {
+          return acc;
+        }
+
+        const prevCoordinate = coordinates[index - 1];
+        const prevLatLng = {
+          latitude: prevCoordinate.latitude,
+          longitude: prevCoordinate.longitude,
+        };
+        const currentLatLng = {
+          latitude: currentCoordinate.latitude,
+          longitude: currentCoordinate.longitude,
+        };
+        const distance = haversineDistance(prevLatLng, currentLatLng);
+        return acc + distance;
+      }, 0);
+
+      setDistance(totalDistance);
+    };
+
+    calculateDistance();
+  }, [coordinates]);
+
+  const haversineDistance = (prevLatLng, currentLatLng) => {
+    const toRadians = (angle) => (angle * Math.PI) / 180;
+
+    const { latitude: lat1, longitude: lon1 } = prevLatLng;
+    const { latitude: lat2, longitude: lon2 } = currentLatLng;
+
+    const earthRadius = 6371;
+
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = earthRadius * c;
+
+    return distance;
+  };
+
+
+  console.log(distance)
   return (
     <View style={styles.container}>
-      {initialRegion && (
-        <MapView style={styles.map} 
-        initialRegion={initialRegion} 
-        customMapStyle={customMapStyle} 
+      {initialRegion && coordinates && (
+        <MapView
+          style={styles.map}
+          initialRegion={initialRegion}
+          customMapStyle={customMapStyle}
         >
-          {markerPosition && <Marker coordinate={markerPosition} />}
+          {!runStarted && markerPosition && <Marker coordinate={markerPosition} />}
+          {runStarted && <Polyline coordinates={coordinates} />}
         </MapView>
       )}
+      {runStarted && <Text style={styles.distanceText}>Distance: {(distance/1000).toFixed(2)} km</Text>}
+      {runStarted && <Text style={styles.go}>Go!</Text>}
     </View>
   );
 };
@@ -56,8 +149,16 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-    width:395
+    width: 350,
+    marginTop: 30,
   },
+  distanceText:{
+
+  },
+  go:{
+    fontSize:20,
+    alignItems:'center',
+  }
 });
 
 export default Map;

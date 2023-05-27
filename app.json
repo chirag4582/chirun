@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "chirun",
+    "name": "Chirun",
     "slug": "chirun",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo/logo-inside.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/logo/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
